@@ -40,7 +40,7 @@ Y.mix(Resolver.prototype, {
     resolve: function (value) {
         this._result = value;
 
-        this._notify(this._subs.resolve, this.promise, this._result);
+        this._notify(this._subs.resolve, this._result);
 
         this._subs = { resolve: [] };
 
@@ -64,7 +64,7 @@ Y.mix(Resolver.prototype, {
     reject: function (reason) {
         this._result = reason;
 
-        this._notify(this._subs.reject, this.promise, this._result);
+        this._notify(this._subs.reject, this._result);
 
         this._subs = { reject: [] };
 
@@ -119,7 +119,7 @@ Y.mix(Resolver.prototype, {
                 // asynchronicity. Because setTimeout can cause unnecessary
                 // delays that *can* become noticeable in some situations
                 // (especially in Node.js)
-                (Y.soon || setTimeout)(function () {
+                Y.soon(function () {
                     // Call the callback/errback with promise as `this` to
                     // preserve the contract that access to the deferred is
                     // only for code that may resolve/reject it.
@@ -145,7 +145,7 @@ Y.mix(Resolver.prototype, {
                         // must return rejected promises or throw.
                         thenFullfill(result);
                     }
-                }, 0);
+                });
             };
         }
 
@@ -191,11 +191,10 @@ Y.mix(Resolver.prototype, {
 
     @method _notify
     @param {Function[]} subs The array of subscriber callbacks
-    @param {Object} context The `this` object for the callbacks
     @param {Any[]} result Any arguments to pass the callbacks
     @protected
     **/
-    _notify: function (subs, context, result) {
+    _notify: function (subs, result) {
         var i, len;
 
         if (subs) {
