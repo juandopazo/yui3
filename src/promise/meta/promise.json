@@ -1,7 +1,8 @@
 {
 	"promise": {
 		"requires": [
-			"oop"
+			"oop",
+			"timers"
 		]
 	},
 	"promise-batch": {
