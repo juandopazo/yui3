@@ -1,0 +1,12 @@
+{
+	"promise": {
+		"requires": [
+			"oop"
+		]
+	},
+	"promise-batch": {
+		"requires": [
+			"promise"
+		]
+	}
+}
