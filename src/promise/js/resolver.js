@@ -102,10 +102,14 @@ Y.mix(Resolver.prototype, {
 
         var promise = this.promise,
             thenFullfill, thenReject,
+
+            // using promise constructor allows for customized promises to be
+            // returned instead of plain ones
             then = new promise.constructor(function (fulfill, reject) {
                 thenFullfill = fulfill;
                 thenReject = reject;
             }),
+
             resolveSubs = this._subs.resolve || [],
             rejectSubs  = this._subs.reject  || [];
 
@@ -118,7 +122,7 @@ Y.mix(Resolver.prototype, {
                 // resolution of the parent promise.
                 var args = arguments;
 
-                // Wrapping all callbacks in setTimeout to guarantee
+                // Wrapping all callbacks in Y.soon to guarantee
                 // asynchronicity. Because setTimeout can cause unnecessary
                 // delays that *can* become noticeable in some situations
                 // (especially in Node.js)
@@ -139,6 +143,8 @@ Y.mix(Resolver.prototype, {
                         return thenReject(e);
                     }
 
+                    // Returning a promise from a callback makes the current
+                    // promise sync up with the returned promise
                     if (result && typeof result.then === 'function') {
                         result.then(thenFullfill, thenReject);
                     } else {
