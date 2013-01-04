@@ -2,8 +2,8 @@
 Adds a `Y.batch()` method to wrap any number of callbacks or promises in a
 single promise that will be resolved when all callbacks and/or promises have completed.
 
-@module deferred
-@submodule deferred-batch
+@module promise
+@submodule promise-batch
 **/
 
 var slice = [].slice,

@@ -1,7 +1,7 @@
 /**
-Represents an operation that may be synchronous or asynchronous.  Provides a
+Represents an asynchronous operation. Provides a
 standard API for subscribing to the moment that the operation completes either
-successfully (`resolve()`) or unsuccessfully (`reject()`).
+successfully (`fulfill()`) or unsuccessfully (`reject()`).
 
 @class Promise.Resolver
 @constructor
@@ -21,23 +21,28 @@ function Resolver(promise) {
     **/
     this.promise = promise;
 
+    /**
+    The status of the operation.
+
+    @property _status
+    @type String
+    @private
+    **/
     this._status = 'pending';
 }
 
 Y.mix(Resolver.prototype, {
     /**
-    Resolves the Resolver, signaling successful completion of the
-    represented operation. All "resolve" subscriptions are executed with
-    all arguments passed in. Future "resolve" subscriptions will be
-    executed immediately with the same arguments. `reject()` and `notify()`
-    are disabled.
+    Resolves the promise, signaling successful completion of the
+    represented operation. All "onFulfilled" subscriptions are executed and passed
+    the value provided to this method. After calling `fulfill()`, `reject()` and
+    `notify()` are disabled.
 
-    @method resolve
-    @param {Any} arg* Any data to pass along to the "resolve" subscribers
-    @return {Resolver} the instance
+    @method fulfill
+    @param {Any} value Value to pass along to the "onFulfilled" subscribers
     @chainable
     **/
-    resolve: function (value) {
+    fulfill: function (value) {
         this._result = value;
 
         this._notify(this._subs.resolve, this._result);
@@ -50,15 +55,13 @@ Y.mix(Resolver.prototype, {
     },
 
     /**
-    Resolves the Resolver, signaling *un*successful completion of the
-    represented operation. All "reject" subscriptions are executed with
-    all arguments passed in. Future "reject" subscriptions will be
-    executed immediately with the same arguments. `resolve()` and `notify()`
-    are disabled.
+    Resolves the promise, signaling *un*successful completion of the
+    represented operation. All "onRejected" subscriptions are executed with
+    the value provided to this method. After calling `reject()`, `resolve()`
+    and `notify()` are disabled.
 
     @method reject
-    @param {Any} arg* Any data to pass along to the "reject" subscribers
-    @return {Resolver} the instance
+    @param {Any} value Value to pass along to the "reject" subscribers
     @chainable
     **/
     reject: function (reason) {
@@ -179,7 +182,7 @@ Y.mix(Resolver.prototype, {
     promise is resolved before calling this.
 
     @method getResult
-    @return {Any[]} Array of values passed to `resolve()` or `reject()`
+    @return {Any} Value passed to `resolve()` or `reject()`
     **/
     getResult: function () {
         return this._result;
@@ -191,7 +194,7 @@ Y.mix(Resolver.prototype, {
 
     @method _notify
     @param {Function[]} subs The array of subscriber callbacks
-    @param {Any[]} result Any arguments to pass the callbacks
+    @param {Any} result Value to pass the callbacks
     @protected
     **/
     _notify: function (subs, result) {

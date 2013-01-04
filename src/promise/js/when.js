@@ -8,6 +8,7 @@ provided, the promise returned is the one returned from calling
 `promise.then(callback, errback)` on the provided or created promise.  If neither
 are provided, the original promise is returned.
 
+@for YUI
 @method when
 @param {Any} promise Promise object or value to wrap in a resolved promise
 @param {Function} [callback] callback to execute if the promise is resolved
