@@ -49,7 +49,7 @@ Y.mix(Resolver.prototype, {
 
         this._subs = { resolve: [] };
 
-        this._status = 'resolved';
+        this._status = 'fulfilled';
 
         return this;
     },
@@ -93,7 +93,7 @@ Y.mix(Resolver.prototype, {
                 of either "resolve" or "reject" callback
     **/
     then: function (callback, errback) {
-        // When the current promise is resolved or rejected, either the
+        // When the current promise is fulfilled or rejected, either the
         // callback or errback will be executed via the function pushed onto
         // this._subs.resolve or this._sub.reject.  However, to allow then()
         // chaining, the execution of either function needs to be represented
@@ -114,7 +114,7 @@ Y.mix(Resolver.prototype, {
             rejectSubs  = this._subs.reject  || [];
 
         // Because the callback and errback are represented by a Resolver, it
-        // must be resolved or rejected to propagate through the then() chain.
+        // must be fulfilled or rejected to propagate through the then() chain.
         // The same logic applies to resolve() and reject() for fulfillment.
         function wrap(fn) {
             return function () {
@@ -163,8 +163,8 @@ Y.mix(Resolver.prototype, {
         rejectSubs.push(typeof errback === 'function' ?
             wrap(errback) : thenReject);
 
-        if (this._status === 'resolved') {
-            this.resolve(this._result);
+        if (this._status === 'fulfilled') {
+            this.fulfill(this._result);
         } else if (this._status === 'rejected') {
             this.reject(this._result);
         }
@@ -174,7 +174,7 @@ Y.mix(Resolver.prototype, {
 
     /**
     Returns the current status of the Resolver as a string "pending",
-    "resolved", or "rejected".
+    "fulfilled", or "rejected".
 
     @method getStatus
     @return {String}
@@ -185,7 +185,7 @@ Y.mix(Resolver.prototype, {
 
     /**
     Returns the result of the Resolver.  Use `getStatus()` to test that the
-    promise is resolved before calling this.
+    promise is fulfilled before calling this.
 
     @method getResult
     @return {Any} Value passed to `resolve()` or `reject()`

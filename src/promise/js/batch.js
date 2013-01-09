@@ -6,13 +6,12 @@ single promise that will be resolved when all callbacks and/or promises have com
 @submodule promise-batch
 **/
 
-var slice = [].slice,
-    isFunction = Y.Lang.isFunction;
+var slice = [].slice;
 
 /**
-Wraps any number of callbacks in a Y.Deferred, and returns the associated
-promise that will resolve when all callbacks have completed.  Each callback is
-passed a Y.Deferred that it must `resolve()` when that callback completes.
+Returns a new promise that will be resolved when all operations have completed.
+Takes both callbacks and promises as arguments. If an argument is a callback,
+it will be wrapped in a new promise.
 
 @for YUI
 @method batch
@@ -25,8 +24,8 @@ Y.batch = function () {
         remaining = funcs.length,
         results   = [];
 
-    return new Y.Promise(function (fulfill, reject) {
-        var resolver = this;
+    return new Y.Promise(function (resolver) {
+        var j = 0, length = funcs.length;
 
         function oneDone(i) {
             return function (value) {
@@ -35,13 +34,13 @@ Y.batch = function () {
                 remaining--;
 
                 if (!remaining && resolver.getStatus() !== 'rejected') {
-                    fulfill(results);
+                    resolver.fulfill(results);
                 }
             };
         }
 
-        Y.Array.each(funcs, function (fn, i) {
-            Y.when((isFunction(fn) ? new Y.Promise(fn) : fn), oneDone(i), reject);
-        });
+        for (; j < length; j++) {
+            Y.when(typeof fn === 'function' ? new Y.Promise(fn) : fn, oneDone(j), Y.bind('reject', resolver));
+        }
     });
 };
