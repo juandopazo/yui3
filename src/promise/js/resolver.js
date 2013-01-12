@@ -8,10 +8,8 @@ successfully (`fulfill()`) or unsuccessfully (`reject()`).
 @param {Promise} promise The promise instance this resolver will be handling
 **/
 function Resolver(promise) {
-    this._subs = {
-        resolve: [],
-        reject : []
-    };
+    this._fulfillSubs = [];
+    this._rejectSubs = [];
 
     /**
     The promise for this Resolver.
@@ -43,13 +41,18 @@ Y.mix(Resolver.prototype, {
     @chainable
     **/
     fulfill: function (value) {
-        this._result = value;
+        if (this._status === 'pending') {
+            this._result = value;
+        }
 
-        this._notify(this._subs.resolve, this._result);
+        if (this._status !== 'rejected') {
+            this._notify(this._fulfillSubs, this._result);
 
-        this._subs = { resolve: [] };
+            this._fulfillSubs = [];
+            this._rejectSubs = null;
 
-        this._status = 'fulfilled';
+            this._status = 'fulfilled';
+        }
 
         return this;
     },
@@ -65,13 +68,18 @@ Y.mix(Resolver.prototype, {
     @chainable
     **/
     reject: function (reason) {
-        this._result = reason;
+        if (this._status === 'pending') {
+            this._result = reason;
+        }
 
-        this._notify(this._subs.reject, this._result);
+        if (this._status !== 'fulfilled') {
+            this._notify(this._rejectSubs, this._result);
 
-        this._subs = { reject: [] };
+            this._fulfillSubs = null;
+            this._rejectSubs = [];
 
-        this._status = 'rejected';
+            this._status = 'rejected';
+        }
 
         return this;
     },
@@ -105,13 +113,13 @@ Y.mix(Resolver.prototype, {
 
             // using promise constructor allows for customized promises to be
             // returned instead of plain ones
-            then = new promise.constructor(function (fulfill, reject) {
-                thenFullfill = fulfill;
-                thenReject = reject;
+            then = new promise.constructor(function (resolver) {
+                thenFullfill = Y.bind('fulfill', resolver);
+                thenReject = Y.bind('reject', resolver);
             }),
 
-            resolveSubs = this._subs.resolve || [],
-            rejectSubs  = this._subs.reject  || [];
+            resolveSubs = this._fulfillSubs || [],
+            rejectSubs  = this._rejectSubs  || [];
 
         // Because the callback and errback are represented by a Resolver, it
         // must be fulfilled or rejected to propagate through the then() chain.

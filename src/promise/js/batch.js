@@ -22,11 +22,12 @@ it will be wrapped in a new promise.
 Y.batch = function () {
     var funcs     = slice.call(arguments),
         remaining = funcs.length,
+        j = 0, length = funcs.length, fn,
         results   = [];
 
     return new Y.Promise(function (resolver) {
-        var j = 0, length = funcs.length;
-
+        var reject = Y.bind('reject', resolver);
+        
         function oneDone(i) {
             return function (value) {
                 results[i] = value;
@@ -40,7 +41,8 @@ Y.batch = function () {
         }
 
         for (; j < length; j++) {
-            Y.when(typeof fn === 'function' ? new Y.Promise(fn) : fn, oneDone(j), Y.bind('reject', resolver));
+            fn = funcs[j];
+            Y.when(typeof fn === 'function' ? new Y.Promise(fn) : fn, oneDone(j), reject);
         }
     });
 };
