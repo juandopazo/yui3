@@ -47,7 +47,46 @@ YUI.add('promise-tests', function (Y) {
             Assert.areEqual('rejected', rejected.getStatus(), 'status of a rejected promise should be "rejected"');
         },
 
+        'fulfilling more than once should not change the promise value': function () {
+            var test = this;
 
+            Promise(function (fulfill) {
+                fulfill(true);
+                fulfill(5);
+            }).then(function (value) {
+                test.resume(function () {
+                    Assert.areSame(true, value, 'value should remain the same');
+                });
+            });
+
+            test.wait(100);
+        },
+
+        'rejecting more than once should not change the rejection reason': function () {
+            var test = this;
+
+            Promise(function (fulfill, reject) {
+                reject(new Error('foo'));
+                reject(new Error('bar'));
+            }).then(null, function (reason) {
+                test.resume(function () {
+                    Assert.areEqual('foo', reason.message, 'reason should remain the same');
+                });
+            });
+
+            test.wait(100);
+        },
+
+        'correct value for "this" inside the promise init function': function () {
+            var promiseA,
+                promiseB = Y.Promise(function () {
+                    promiseA = this;
+
+                    Assert.isInstanceOf(Promise, this, '"this" should be a promise');
+                });
+
+            Assert.areSame(promiseA, promiseB, 'the return value of Y.Promise and "this" inside the init function should be the same');
+        },
 
         'callbacks passed to then should be called asynchronously': function () {
             var test = this;
