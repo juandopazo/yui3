@@ -44,7 +44,7 @@ YUI.add('batch-tests', function (Y) {
             Y.batch().then(function (result) {
                 test.resume();
 
-                ArrayAssert.areSame(0, result.length, 'with no parameters, batch should result in an empty array');
+                Assert.areSame(0, result.length, 'with no parameters, batch should result in an empty array');
             });
 
             test.wait();

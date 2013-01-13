@@ -38,7 +38,6 @@ Y.mix(Resolver.prototype, {
 
     @method fulfill
     @param {Any} value Value to pass along to the "onFulfilled" subscribers
-    @chainable
     **/
     fulfill: function (value) {
         if (this._status === 'pending') {
@@ -53,8 +52,6 @@ Y.mix(Resolver.prototype, {
 
             this._status = 'fulfilled';
         }
-
-        return this;
     },
 
     /**
@@ -65,7 +62,6 @@ Y.mix(Resolver.prototype, {
 
     @method reject
     @param {Any} value Value to pass along to the "reject" subscribers
-    @chainable
     **/
     reject: function (reason) {
         if (this._status === 'pending') {
@@ -80,8 +76,6 @@ Y.mix(Resolver.prototype, {
 
             this._status = 'rejected';
         }
-
-        return this;
     },
 
     /**
@@ -153,7 +147,7 @@ Y.mix(Resolver.prototype, {
 
                     // Returning a promise from a callback makes the current
                     // promise sync up with the returned promise
-                    if (result && typeof result.then === 'function') {
+                    if (Promise.isPromise(result)) {
                         result.then(thenFullfill, thenReject);
                     } else {
                         // Non-promise return values always trigger resolve()

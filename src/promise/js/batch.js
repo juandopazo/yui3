@@ -25,9 +25,9 @@ Y.batch = function () {
         j = 0, length = funcs.length, fn,
         results   = [];
 
-    return new Y.Promise(function (fulfill, reject) {  
+    return new Y.Promise(function (fulfill, reject) {
         var allDone = this;
-              
+
         function oneDone(i) {
             return function (value) {
                 results[i] = value;
