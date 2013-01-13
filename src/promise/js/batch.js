@@ -25,19 +25,23 @@ Y.batch = function () {
         j = 0, length = funcs.length, fn,
         results   = [];
 
-    return new Y.Promise(function (resolver) {
-        var reject = Y.bind('reject', resolver);
-        
+    return new Y.Promise(function (fulfill, reject) {  
+        var allDone = this;
+              
         function oneDone(i) {
             return function (value) {
                 results[i] = value;
 
                 remaining--;
 
-                if (!remaining && resolver.getStatus() !== 'rejected') {
-                    resolver.fulfill(results);
+                if (!remaining && allDone.getStatus() !== 'rejected') {
+                    fulfill(results);
                 }
             };
+        }
+
+        if (funcs.length < 1) {
+            return fulfill(results);
         }
 
         for (; j < length; j++) {

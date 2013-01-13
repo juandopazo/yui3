@@ -113,9 +113,9 @@ Y.mix(Resolver.prototype, {
 
             // using promise constructor allows for customized promises to be
             // returned instead of plain ones
-            then = new promise.constructor(function (resolver) {
-                thenFullfill = Y.bind('fulfill', resolver);
-                thenReject = Y.bind('reject', resolver);
+            then = new promise.constructor(function (fulfill, reject) {
+                thenFullfill = fulfill;
+                thenReject = reject;
             }),
 
             resolveSubs = this._fulfillSubs || [],

@@ -18,11 +18,11 @@ are provided, the original promise is returned.
 Y.when = function (promise, callback, errback) {
     var value;
 
-    if (typeof promise !== 'object' || typeof promise.then !== 'function') {
+    if (!Y.Promise.isPromise(promise)) {
         value = promise;
 
-        promise = new Y.Promise(function (resolver) {
-            resolver.fulfill(value);
+        promise = new Y.Promise(function (fulfill) {
+            fulfill(value);
         });
     }
 

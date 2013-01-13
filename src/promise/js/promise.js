@@ -33,7 +33,7 @@ resolution or progress of the operation represented by the Resolver.
 @param {Function} fn A function where to insert the logic that resolves this
         promise. Receives `fulfill` and `reject` functions as parameters
 **/
-Y.Promise = function Promise(fn) {
+function Promise(fn) {
     if (!(this instanceof Promise)) {
         return new Promise(fn);
     }
@@ -72,5 +72,22 @@ Y.Promise = function Promise(fn) {
         return resolver.getStatus.apply(resolver, arguments);
     };
 
-    fn(resolver);
+    fn.call(this, Y.bind('fulfill', resolver), Y.bind('reject', resolver));
+}
+
+/**
+Checks if an object or value is a promise. This is cross-implementation
+compatible, so promises returned from other libraries or native components
+that are compatible with the Promises A+ spec should be recognized by this
+method.
+
+@method isPromise
+@param {Any} obj The object to test
+@return {Boolean} Whether the object is a promise or not
+@static
+**/
+Promise.isPromise = function (obj) {
+    return Y.Lang.isObject(obj) && typeof obj.then === 'function';
 };
+
+Y.Promise = Promise;
