@@ -42,21 +42,21 @@ YUI.add('batch-tests', function (Y) {
             var test = this;
 
             Y.batch().then(function (result) {
-                test.resume();
-
-                Assert.areSame(0, result.length, 'with no parameters, batch should result in an empty array');
+                test.resume(function () {
+                    Assert.areSame(0, result.length, 'with no parameters, batch should result in an empty array');
+                });
             });
 
-            test.wait();
+            test.wait(100);
         },
 
         'order of promises should be preserved': function () {
             var test = this;
 
             Y.batch(wait(20), wait(10), wait(15)).then(function (result) {
-                test.resume();
-
-                ArrayAssert.itemsAreSame([20, 10, 15], result, 'order of returned values should be the same as the parameter list');
+                test.resume(function () {
+                    ArrayAssert.itemsAreSame([20, 10, 15], result, 'order of returned values should be the same as the parameter list');
+                });
             });
 
             test.wait();
@@ -69,12 +69,12 @@ YUI.add('batch-tests', function (Y) {
                 };
 
             Y.batch('foo', 5, obj).then(function (result) {
-                test.resume();
-
-                ArrayAssert.itemsAreSame(['foo', 5, obj], result, 'values passed to batch should be wrapped in promises, not ignored');
+                test.resume(function () {
+                    ArrayAssert.itemsAreSame(['foo', 5, obj], result, 'values passed to batch should be wrapped in promises, not ignored');
+                });
             });
 
-            test.wait();
+            test.wait(100);
         },
 
         'correct handling of function parameters': function () {
@@ -85,14 +85,14 @@ YUI.add('batch-tests', function (Y) {
                 setTimeout(function () {
                     fulfill(result);
                 }, 10);
-            }).then(function (value) {
-                test.resume();
-
-                Assert.isNumber(value, 'promise value should be a number, not a function');
-                Assert.areSame(result, value, 'promise value should be ' + result);
+            }).then(function (values) {
+                test.resume(function () {
+                    Assert.isNumber(values[0], 'promise value should be a number, not a function');
+                    Assert.areSame(result, values[0], 'promise value should be ' + result);
+                });
             });
 
-            test.wait();
+            test.wait(100);
         }
     }));
 
@@ -103,9 +103,9 @@ YUI.add('batch-tests', function (Y) {
             var test = this;
 
             Y.batch(rejectedAfter(20), rejectedAfter(10), rejectedAfter(15)).then(null, function (reason) {
-                test.resume();
-
-                Assert.areEqual('10', reason.message, 'reason should be the one from the first promise to be rejected');
+                test.resume(function () {
+                    Assert.areEqual('10', reason.message, 'reason should be the one from the first promise to be rejected');
+                });
             });
 
             test.wait(100);
