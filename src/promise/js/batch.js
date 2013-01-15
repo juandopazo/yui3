@@ -22,7 +22,8 @@ it will be wrapped in a new promise.
 Y.batch = function () {
     var funcs     = slice.call(arguments),
         remaining = funcs.length,
-        j = 0, length = funcs.length, fn,
+        j         = 0,
+        length    = funcs.length,
         results   = [];
 
     return new Y.Promise(function (fulfill, reject) {
@@ -40,13 +41,12 @@ Y.batch = function () {
             };
         }
 
-        if (funcs.length < 1) {
+        if (length < 1) {
             return fulfill(results);
         }
 
         for (; j < length; j++) {
-            fn = funcs[j];
-            Y.when(typeof fn === 'function' ? new Y.Promise(fn) : fn, oneDone(j), reject);
+            Y.when(funcs[j], oneDone(j), reject);
         }
     });
 };
