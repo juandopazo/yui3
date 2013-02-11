@@ -41,39 +41,48 @@ function Promise(fn) {
     var resolver = new Promise.Resolver(this);
 
     /**
-    Schedule execution of a callback to either or both of "fulfill" and
-    "reject" resolutions for this promise. The callbacks are wrapped in a new
-    promise and that promise is returned.  This allows operation chaining ala
-    `functionA().then(functionB).then(functionC)` where `functionA` returns
-    a promise, and `functionB` and `functionC` _may_ return promises.
-
-    Asynchronicity of the callbacks is guaranteed.
-
-    @method then
-    @param {Function} [callback] function to execute if the promise
-                resolves successfully
-    @param {Function} [errback] function to execute if the promise
-                resolves unsuccessfully
-    @return {Promise} A promise wrapping the resolution of either "resolve" or
-                "reject" callback
-    **/
-    this.then = function () {
-        return resolver.then.apply(resolver, arguments);
-    };
-
-    /**
-    Returns the current status of the operation. Possible results are
-    "pending", "fulfilled", and "rejected".
-
-    @method getStatus
-    @return {String}
-    **/
-    this.getStatus = function () {
-        return resolver.getStatus.apply(resolver, arguments);
-    };
+    A reference to the resolver object that handles this promise
+    
+    @property _resolver
+    @type Object
+    @private
+    */
+    this._resolver = resolver;
 
     fn.call(this, Y.bind('fulfill', resolver), Y.bind('reject', resolver));
 }
+
+/**
+Schedule execution of a callback to either or both of "fulfill" and
+"reject" resolutions for this promise. The callbacks are wrapped in a new
+promise and that promise is returned.  This allows operation chaining ala
+`functionA().then(functionB).then(functionC)` where `functionA` returns
+a promise, and `functionB` and `functionC` _may_ return promises.
+
+Asynchronicity of the callbacks is guaranteed.
+
+@method then
+@param {Function} [callback] function to execute if the promise
+            resolves successfully
+@param {Function} [errback] function to execute if the promise
+            resolves unsuccessfully
+@return {Promise} A promise wrapping the resolution of either "resolve" or
+            "reject" callback
+**/
+
+/**
+Returns the current status of the operation. Possible results are
+"pending", "fulfilled", and "rejected".
+
+@method getStatus
+@return {String}
+**/
+Y.Array.each(['then', 'getStatus'], function (method) {
+    Promise.prototype[method] = function () {
+        return this._resolver[method].apply(this._resolver, arguments);
+    };
+});
+
 
 /**
 Checks if an object or value is a promise. This is cross-implementation
@@ -87,7 +96,7 @@ method.
 @static
 **/
 Promise.isPromise = function (obj) {
-    return Y.Lang.isObject(obj) && typeof obj.then === 'function';
+    return !!obj && typeof obj.then === 'function';
 };
 
 Y.Promise = Promise;
