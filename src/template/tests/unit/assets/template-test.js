@@ -430,6 +430,130 @@ templateSuite.add(new Y.Test.Case({
     }
 }));
 
+templateSuite.add(new Y.Test.Case({
+    name: 'Async Registration',
+
+    setUp: function () {
+        this.errorFn   = Y.config.errorFn;
+        this.throwFail = Y.config.throwFail;
+
+        this.templateFunction = function asyncTemplate(data, callback) {
+            setTimeout(function () {
+                callback(null, 'foo ' + data.a);
+            }, 0);
+        };
+    },
+
+    tearDown: function () {
+        delete this.templateFunction;
+        delete Y.Template._registry;
+
+        Y.Template._registry = {};
+
+        Y.config.errorFn = this.errorFn;
+        delete this.errorFn;
+
+        Y.config.throwFail = this.throwFail;
+        delete this.throwFail;
+    },
+
+    '[async] register() should attach a template to the registry and return it': function () {
+        var revivedTmpl = Y.Template.registerAsync('tmpl', this.templateFunction);
+
+        Assert.areSame(this.templateFunction, revivedTmpl, 'register() did not return the revived template');
+    },
+
+    '[async] get() should return the registered template function with the right name': function () {
+        Y.Template.registerAsync('tmpl', this.templateFunction);
+
+        Assert.areSame(this.templateFunction, Y.Template.get('tmpl'), 'get() did not return the revived template');
+    },
+
+    '[async] get() should return `undefined` if template is unregistered': function () {
+        var unregisteredTmpl = Y.Template.get('tmpl');
+
+        Assert.isUndefined(unregisteredTmpl, 'Unregistered template is not `undefined`');
+    },
+
+    '[async] render() should use the correct template to generate the output': function () {
+        var test = this;        
+
+        Y.Template.registerAsync('tmpl', this.templateFunction);
+
+        Y.Template.render('tmpl', {'a': 'bar'}, function (error, output) {
+            test.resume(function () {
+                if (error) {
+                    Assert.fail(error.message);
+                }
+                Assert.areSame('foo bar', output, 'render() did not return the correct output');
+            });
+        });
+
+        test.wait();
+    },
+
+    '[async] render() on an unregistered template should return an error': function () {
+        var test = this;        
+
+        Y.Template.registerAsync('tmpl', this.templateFunction);
+        
+        Y.Template.render('fail', {'a': 'bar'}, function (error) {
+            test.resume(function () {
+                Assert.isInstanceOf(Error, error, 'Error should be an instance of error');
+            });
+        });
+
+        test.wait();
+    },
+
+    '[async] render() should always return a string': function () {
+        var test = this,
+            output;
+
+        // We don't want the uncaught error line noise because we expect an
+        // error to be thrown when trying to render the unregistered template.
+        Y.config.throwFail = false;
+        Y.config.errorFn   = function (e) {
+            Assert.areSame(e, 'Unregistered template: "not-exist"');
+            return true;
+        };
+
+        Y.Template.registerAsync('tmpl', this.templateFunction);
+        Y.Template.render('tmpl', {'a': 'bar'}, function (error1, output1) {
+            Y.Template.render('not-exist', {}, function (error2, output2) {
+                test.resume(function () {
+                    if (error1) {
+                        Assert.fail(error1.message);
+                    }
+
+                    Assert.areSame('foo bar', output1, 'render() did not return the correct output');
+                    Assert.areSame('', output2);
+                });
+            });
+        });
+
+        test.wait();
+    },
+
+    '[async] register() should override an existing template with the same name': function () {
+        Y.Template.registerAsync('tmpl', function (data, callback) {
+            setTimeout(function () {
+                callback(null, 'baz qux');
+            }, 0);
+        });
+        Y.Template.registerAsync('tmpl', this.templateFunction);
+        
+        Y.Template.render('tmpl', {'a': 'bar'}, function (error, output) {
+            if (error) {
+                Assert.fail(error.message);
+            }
+
+            Assert.areSame(this.templateFunction, Y.Template.get('tmpl'), 'new template function did not override the old one');
+            Assert.areSame('foo bar', output, 'new template function did not generate correct string');
+        });
+    }
+}));
+
 }, '@VERSION@', {
     requires: ['handlebars', 'template', 'test']
 });

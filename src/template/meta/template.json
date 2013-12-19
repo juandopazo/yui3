@@ -8,7 +8,7 @@
 
     "template-base": {
         "requires": [
-            "yui-base"
+            "timers"
         ]
     },
 

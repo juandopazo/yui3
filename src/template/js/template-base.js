@@ -122,10 +122,20 @@ See the `Y.Template#render` method to see how a registered template is used.
 @static
 @since 3.12.0
 **/
-Template.register = function (templateName, template) {
-    Template._registry[templateName] = template;
-    return template;
-};
+Y.Object.each({
+    'sync'   : '',
+    'async'  : 'Async',
+    'promise': 'Promise',
+    'node'   : 'Node'
+}, function (suffix, type) {
+    Template['register' + suffix] = function (templateName, template) {
+        Template._registry[templateName] = {
+            template: template,
+            type: type
+        };
+        return template;
+    };
+});
 
 /**
 Returns the registered template function, given the template name. If an
@@ -140,8 +150,9 @@ unregistered template is accessed, this will return `undefined`.
 **/
 
 Template.get = function (templateName) {
-    return Template._registry[templateName];
-}
+    var record = Template._registry[templateName];
+    return record && record.template;
+};
 
 /**
 Renders a template into a string, given the registered template name and data
@@ -172,17 +183,102 @@ engine generated it.
 @static
 @since 3.12.0
 **/
-Template.render = function (templateName, data, options) {
-    var template = Template._registry[templateName],
+Template.render = function (templateName, data, options, callback) {
+    var record = Template._registry[templateName],
+        template = record && record.template,
         result   = '';
 
+    if (typeof options === 'function') {
+        callback = options;
+        options = null;
+    }
+
     if (template) {
-        result = template(data, options);
+        switch (record.type) {
+            case 'sync':
+                return template(data, options);
+            case 'async':
+                template(data, callback);
+                break;
+            case 'promise':
+                return template(data, options);
+            case 'node':
+                Y.error('To render node-based templates, use Template.renderTo()');
+                break;
+        }
+    } else if (typeof callback === 'function') {
+        Y.soon(function () {
+            callback(new Error('Unregistered template: "' + templateName + '"'), '');
+        });
     } else {
         Y.error('Unregistered template: "' + templateName + '"');
     }
 
     return result;
+};
+
+/**
+Renders a template into a node, given the registered template name and data
+to be interpolated.The template name must have been registered previously with
+`register()`, `registerAsync()` or `registerPromise()`.
+
+This function also normalizes behavior across different types of templates so
+it will always notify the completion of the rendering asynchronosly, even when
+rendering synchronous templates.
+
+@param {String} templateName The abstracted name to reference the template.
+@param {Node|String} node The DOM node into which to render the template or a
+                            CSS selector pointing to the node.
+@param {Object} [data] The data to be interpolated into the template.
+@param {Function} [callback] A callback to call once the template is rendered
+                            or if an error ocurred. If there was an exception
+                            the first parameter will be an error.
+**/
+Template.renderTo = function (templateName, node, data, callback) {
+    var record = Template._registry[templateName],
+        result;
+
+    if (record) {
+        switch (record.type) {
+            case 'sync':
+                node.setHTML(record.template(data));
+                if (callback) {
+                    Y.soon(callback);
+                }
+                break;
+            case 'async':
+                record.template(data, function (err, result) {
+                    if (err && callback) {
+                        callback(err);
+                        return;
+                    }
+                    node.setHTML(result);
+                    if (callback) {
+                        callback();
+                    }
+                });
+                break;
+            case 'promise':
+                result = record.template(data).then(function (result) {
+                    node.setHTML(result);
+                });
+                if (callback) {
+                    result.then(function () {
+                        Y.soon(callback);
+                    }, function (err) {
+                        Y.soon(function () {
+                            callback(err);
+                        });
+                    });
+                }
+                break;
+            case 'node':
+                record.template(data, node, callback);
+                break;
+        }
+    } else {
+        Y.error('Unregistered template: "' + templateName + '"');
+    }
 };
 
 Template.prototype = {
