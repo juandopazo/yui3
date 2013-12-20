@@ -154,6 +154,59 @@ Template.get = function (templateName) {
     return record && record.template;
 };
 
+Template.bindTo = function (templateNamek, node) {
+    var record = Template._registry[templateName],
+        template = record && record.template;
+
+    if (template) {
+        switch (record.type) {
+            case 'sync':
+                return function (data, callback) {
+                    var output;
+
+                    try {
+                        output = template(data);
+                    } catch (err) {
+                        callback(err);
+                        return;
+                    }
+
+                    node.setHTML(output);
+                    callback();
+                };
+            case 'async':
+                return function (data, callback) {
+                    template(data, function (err, output) {
+                        if (err) {
+                            callback(err);
+                            return;
+                        }
+
+                        node.setHTML(output);
+                        callback();
+                    });
+                };
+            case 'promise':
+                return function (data, callback) {
+                    template(data).then(function (output) {
+                        node.setHTML(output);
+                        Y.soon(callback);
+                    }, function (err) {
+                        Y.soon(function () {
+                            callback(err);
+                        });
+                    });
+                };
+            case 'node':
+                return function (data, callback) {
+                    template(data, node, callback);
+                };
+        }
+    } else {
+        Y.error('Unregistered template: "' + templateName + '"');
+    }
+};
+
 /**
 Renders a template into a string, given the registered template name and data
 to be interpolated. The template name must have been registered previously with
@@ -235,50 +288,7 @@ rendering synchronous templates.
                             the first parameter will be an error.
 **/
 Template.renderTo = function (templateName, node, data, callback) {
-    var record = Template._registry[templateName],
-        result;
-
-    if (record) {
-        switch (record.type) {
-            case 'sync':
-                node.setHTML(record.template(data));
-                if (callback) {
-                    Y.soon(callback);
-                }
-                break;
-            case 'async':
-                record.template(data, function (err, result) {
-                    if (err && callback) {
-                        callback(err);
-                        return;
-                    }
-                    node.setHTML(result);
-                    if (callback) {
-                        callback();
-                    }
-                });
-                break;
-            case 'promise':
-                result = record.template(data).then(function (result) {
-                    node.setHTML(result);
-                });
-                if (callback) {
-                    result.then(function () {
-                        Y.soon(callback);
-                    }, function (err) {
-                        Y.soon(function () {
-                            callback(err);
-                        });
-                    });
-                }
-                break;
-            case 'node':
-                record.template(data, node, callback);
-                break;
-        }
-    } else {
-        Y.error('Unregistered template: "' + templateName + '"');
-    }
+    Template.bindTo(templateName, node)(data, callback);
 };
 
 Template.prototype = {
