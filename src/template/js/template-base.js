@@ -150,27 +150,33 @@ See the `Y.Template#render` method to see how a registered template is used.
 @param {Function} template The function that returns the rendered string. The
     function should take the following parameters. If a pre-compiled template
     does not accept these parameters, it is up to the developer to normalize it.
-  @param {Node} [template.node] A DOM node.
   @param {Object} [template.data] Data object to provide when rendering the
     template.
-  @param {Function} [template.callback] A callback
+  @param {Object} [template.options] Options to pass along to the template
+    engine. See template engine docs for options supported by each engine.
+@param {Object} [config] Optional configuration.
+  @param {String} [config.type='sync'] The type of the template. May be one of:
+    * **`sync`**: A function that takes `data` and `options` parameters and
+        returns a string with the result of rendering the template. This is the
+        default template type.
+    * **`async`**: A function that takes a `data` parameter and a callback. The
+        callback follows Node.js' style and takes an optional errors as a first
+        parameter. The second parameter is the result of rendering the template.
+    * **`promise`**: A function that takes a `data` parameter and returns a
+        promise for the result of rendering the template.
+    * **`node`**: A function that takes `data` and `node` parameters. The node
+        is a DOM node that will be updated live with the result of rendering the
+        template.
 @static
 @since @SINCE@
 **/
-Y.Object.each({
-    'sync'   : '',
-    'async'  : 'Async',
-    'promise': 'Promise',
-    'node'   : 'Bound'
-}, function (suffix, type) {
-    Template['register' + suffix] = function (templateName, template) {
-        Template._registry[templateName] = {
-            template: template,
-            type: type
-        };
-        return template;
+Template.register = function (templateName, template, options) {
+    options = options || {};
+    Template._registry[templateName] = {
+        template: template,
+        type: options.type
     };
-});
+};
 
 /**
 Returns the registered template function, given the template name. If an
@@ -229,20 +235,6 @@ Template.bindTo = function (templateNamek, node) {
 
     if (template) {
         switch (record.type) {
-            case 'sync':
-                return function (data, callback) {
-                    var output;
-
-                    try {
-                        output = template(data);
-                    } catch (err) {
-                        callback(err);
-                        return;
-                    }
-
-                    node.setHTML(output);
-                    callback();
-                };
             case 'async':
                 return function (data, callback) {
                     template(data, function (err, output) {
@@ -269,6 +261,20 @@ Template.bindTo = function (templateNamek, node) {
             case 'node':
                 return function (data, callback) {
                     template(data, node.getDOMNode(), callback);
+                };
+            default:
+                return function (data, callback) {
+                    var output;
+
+                    try {
+                        output = template(data);
+                    } catch (err) {
+                        callback(err);
+                        return;
+                    }
+
+                    node.setHTML(output);
+                    callback();
                 };
         }
     } else {
