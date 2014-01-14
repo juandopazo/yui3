@@ -318,8 +318,6 @@ Template.render = function (templateName, data, options, callback) {
 
     if (template) {
         switch (record.type) {
-            case 'sync':
-                return template(data, options);
             case 'async':
                 template(data, callback);
                 break;
@@ -335,8 +333,10 @@ Template.render = function (templateName, data, options, callback) {
                 });
                 break;
             case 'live':
-                Y.error('For non synchronous templates use renderTo()');
+                Y.error('For live templates use renderTo()');
                 break;
+            default:
+                return template(data, options);
         }
     } else {
         Y.error('Unregistered template: "' + templateName + '"');
