@@ -164,7 +164,7 @@ See the `Y.Template#render` method to see how a registered template is used.
         parameter. The second parameter is the result of rendering the template.
     * **`promise`**: A function that takes a `data` parameter and returns a
         promise for the result of rendering the template.
-    * **`node`**: A function that takes `data` and `node` parameters. The node
+    * **`live`**: A function that takes `data` and `node` parameters. The node
         is a DOM node that will be updated live with the result of rendering the
         template.
 @static
@@ -258,7 +258,7 @@ Template.bindTo = function (templateNamek, node) {
                         });
                     });
                 };
-            case 'node':
+            case 'live':
                 return function (data, callback) {
                     template(data, node.getDOMNode(), callback);
                 };
