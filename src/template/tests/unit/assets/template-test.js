@@ -433,6 +433,12 @@ templateSuite.add(new Y.Test.Case({
 templateSuite.add(new Y.Test.Case({
     name: 'Async Registration',
 
+    _should: {
+        error: {
+            '[async] render() on an unregistered template should throw an error': true
+        }
+    },
+
     setUp: function () {
         this.errorFn   = Y.config.errorFn;
         this.throwFail = Y.config.throwFail;
@@ -458,13 +464,17 @@ templateSuite.add(new Y.Test.Case({
     },
 
     '[async] register() should attach a template to the registry and return it': function () {
-        var revivedTmpl = Y.Template.registerAsync('tmpl', this.templateFunction);
+        var revivedTmpl = Y.Template.register('tmpl', this.templateFunction, {
+            type: 'async'
+        });
 
         Assert.areSame(this.templateFunction, revivedTmpl, 'register() did not return the revived template');
     },
 
     '[async] get() should return the registered template function with the right name': function () {
-        Y.Template.registerAsync('tmpl', this.templateFunction);
+        Y.Template.register('tmpl', this.templateFunction, {
+            type: 'async'
+        });
 
         Assert.areSame(this.templateFunction, Y.Template.get('tmpl'), 'get() did not return the revived template');
     },
@@ -478,9 +488,11 @@ templateSuite.add(new Y.Test.Case({
     '[async] render() should use the correct template to generate the output': function () {
         var test = this;        
 
-        Y.Template.registerAsync('tmpl', this.templateFunction);
+        Y.Template.register('tmpl', this.templateFunction, {
+            type: 'async'
+        });
 
-        Y.Template.render('tmpl', {'a': 'bar'}, function (error, output) {
+        Y.Template.render('tmpl', {'a': 'bar'}, null, function (error, output) {
             test.resume(function () {
                 if (error) {
                     Assert.fail(error.message);
@@ -492,18 +504,15 @@ templateSuite.add(new Y.Test.Case({
         test.wait();
     },
 
-    '[async] render() on an unregistered template should return an error': function () {
+    '[async] render() on an unregistered template should throw an error': function () {
         var test = this;        
 
-        Y.Template.registerAsync('tmpl', this.templateFunction);
-        
-        Y.Template.render('fail', {'a': 'bar'}, function (error) {
-            test.resume(function () {
-                Assert.isInstanceOf(Error, error, 'Error should be an instance of error');
-            });
+        Y.Template.register('tmpl', this.templateFunction, {
+            type: 'async'
         });
-
-        test.wait();
+        
+        Y.Template.render('fail', {'a': 'bar'}, null, function (error) {
+        });
     },
 
     '[async] render() should always return a string': function () {
@@ -518,16 +527,13 @@ templateSuite.add(new Y.Test.Case({
             return true;
         };
 
-        Y.Template.registerAsync('tmpl', this.templateFunction);
-        Y.Template.render('tmpl', {'a': 'bar'}, function (error1, output1) {
-            Y.Template.render('not-exist', {}, function (error2, output2) {
-                test.resume(function () {
-                    if (error1) {
-                        Assert.fail(error1.message);
-                    }
-
-                    Assert.areSame('foo bar', output1, 'render() did not return the correct output');
-                    Assert.areSame('', output2);
+        Y.Template.register('tmpl', this.templateFunction, {
+            type: 'async'
+        });
+        Y.Template.render('tmpl', {'a': 'bar'}, null, function (error1, output1) {
+            test.resume(function () {
+                Assert.areSame('foo bar', output1, 'render() did not return the correct output');
+                Y.Template.render('not-exist', {}, null, function (error2, output2) {
                 });
             });
         });
@@ -536,14 +542,18 @@ templateSuite.add(new Y.Test.Case({
     },
 
     '[async] register() should override an existing template with the same name': function () {
-        Y.Template.registerAsync('tmpl', function (data, callback) {
+        Y.Template.register('tmpl', function (data, callback) {
             setTimeout(function () {
                 callback(null, 'baz qux');
             }, 0);
+        }, {
+            type: 'async'
         });
-        Y.Template.registerAsync('tmpl', this.templateFunction);
+        Y.Template.register('tmpl', this.templateFunction, {
+            type: 'async'
+        });
         
-        Y.Template.render('tmpl', {'a': 'bar'}, function (error, output) {
+        Y.Template.render('tmpl', {'a': 'bar'}, null, function (error, output) {
             if (error) {
                 Assert.fail(error.message);
             }
