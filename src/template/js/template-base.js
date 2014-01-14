@@ -174,8 +174,9 @@ Template.register = function (templateName, template, options) {
     options = options || {};
     Template._registry[templateName] = {
         template: template,
-        type: options.type
+        type: options.type || 'sync'
     };
+    return template;
 };
 
 /**
@@ -311,26 +312,42 @@ engine generated it.
 @static
 @since 3.12.0
 **/
-Template.render = function (templateName, data, options) {
+Template.render = function (templateName, data, options, callback) {
     var record = Template._registry[templateName],
         template = record && record.template;
 
-    if (template && record.type === 'sync') {
-        return template(data, options);
-    }
-
-    if (!template) {
-        Y.error('Unregistered template: "' + templateName + '"');
+    if (template) {
+        switch (record.type) {
+            case 'sync':
+                return template(data, options);
+            case 'async':
+                template(data, callback);
+                break;
+            case 'promise':
+                template(data).then(function (result) {
+                    Y.soon(function () {
+                        callback(null, result);
+                    });
+                }, function (err) {
+                    Y.soon(function () {
+                        callback(err);
+                    });
+                });
+                break;
+            case 'live':
+                Y.error('For non synchronous templates use renderTo()');
+                break;
+        }
     } else {
-        Y.error('For non synchronous templates use renderTo()');
+        Y.error('Unregistered template: "' + templateName + '"');
     }
     return '';
 };
 
 /**
 Renders a template into a node, given the registered template name and data
-to be interpolated.The template name must have been registered previously with
-`register()`, `registerAsync()` or `registerPromise()`.
+to be interpolated. The template name must have been registered previously with
+`register()`.
 
 This function also normalizes behavior across different types of templates so
 it will always notify the completion of the rendering asynchronosly, even when
