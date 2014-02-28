@@ -1,14 +1,18 @@
 {
-	"name": "promise",
-	
-	"builds": {
-		"promise": {
-			"jsfiles": [
-				"promise.js",
-				"resolver.js",
-				"when.js",
-				"batch.js"
-			]
-		}
-	}
+    "name": "promise",
+    
+    "builds": {
+        "promise": {
+            "prependfiles": [
+                "js/promise.js",
+                "../../../bower_components/ypromise/promise.js"
+            ],
+            "jsfiles": [
+                "shim.js",
+                "batch.js",
+                "when.js"
+            ],
+            "regex": "^.*?(?:logger|Y.log|Promise._log).*?(?:;|\\).*;|(?:\\r?\\n.*?)*?\\).*;).*;?.*?\\r?\\n|^.*?(?:\/\\*@DBG\\*\/).*\\r?\\n"
+        }
+    }
 }

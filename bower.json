@@ -2,6 +2,7 @@
   "name": "yui",
   "version": "3.15.0-pre",
   "devDependencies": {
-    "pure": "0.3.0"
+    "pure": "0.3.0",
+    "ypromise": "0.2.3"
   }
 }
