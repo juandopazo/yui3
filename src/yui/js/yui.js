@@ -653,6 +653,21 @@ with any configuration info required for the module.
         return this;
     },
 
+    define: function (name, reqs, factory) {
+        return this.add(name, function (Y, NAME, __imports__, __exports__) {
+            var args = [], i;
+
+            for (i = 0; i < reqs.length; i++) {
+                args[i] = __imports__[reqs[i]];
+            }
+            return factory.apply(undefined, args);
+        }, '', {
+            requires: reqs,
+            es: true,
+            pathAware: true
+        });
+    },
+
     /**
     Executes the callback function associated with each required module,
     attaching the module to this YUI instance.
@@ -1016,9 +1031,12 @@ with any configuration info required for the module.
     **/
     require: function () {
         var args = SLICE.call(arguments),
-            callback;
+            i, length = args.length,
+            name, loader, callback;
 
         if (typeof args[args.length - 1] === 'function') {
+            length--;
+
             callback = args.pop();
 
             // only add the callback if one was provided
@@ -1044,6 +1062,7 @@ with any configuration info required for the module.
                 callback.call(undefined, Y, __imports__);
             });
         }
+
         // Do not return the Y object. This makes it hard to follow this
         // traditional pattern:
         //   var Y = YUI().use(...);
@@ -1052,7 +1071,7 @@ with any configuration info required for the module.
         // This also leaves the door open for returning a promise, once the
         // YUI loader is based on the ES6 loader which uses
         // loader.import(...).then(...)
-        this.use.apply(this, args);
+        this.use.apply(this, this.Loader ? getLoader(Y).registerPaths(args) : args);
     },
 
     /**

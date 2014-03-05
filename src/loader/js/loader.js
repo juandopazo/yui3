@@ -1013,7 +1013,7 @@ Y.Loader.prototype = {
         }
 
 
-        var subs, i, l, t, sup, s, smod, plugins, plug,
+        var subs, i, l, t, sup, s, smod, plugins, plug, name, path,
             j, langs, packName, supName, flatSup, flatLang, lang, ret,
             overrides, skinname, when, g, p,
             conditions = this.conditions, trigger;
@@ -1060,6 +1060,21 @@ Y.Loader.prototype = {
         this.moduleInfo[name] = o;
 
         o.requires = o.requires || [];
+
+        if (o.pathAware) {
+            for (i = 0; i < o.requires.length; i++) {
+                if (/\.\//.test(o.requires[i])) {
+                    path = this._resolvePath(o.requires[i]);
+                    name = this._pathToName(path);
+                    this.addModule({
+                        name: name,
+                        fullpath: path,
+                        temp: true
+                    });
+                    o.requires[i] = name;
+                }
+            }
+        }
 
         /*
         Only allowing the cascade of requires information, since
@@ -1873,6 +1888,89 @@ Y.Loader.prototype = {
         }
 
         // Y.log('After explode: ' + YObject.keys(r));
+    },
+    _resolvePath: function (path) {
+        var base = this.base.split('//'),
+            protocol, host,
+            i, length;
+
+        protocol = base[0];
+        base = base[1].split('/');
+
+        host = base.shift();
+
+        base.push.apply(base, path.split('/'));
+
+        i = 0;
+
+        while (i < base.length) {
+            switch (base[i]) {
+                case '':
+                case '.':
+                    base.splice(i, 1);
+                    break;
+                case '..':
+                    if (i - 1 >= 0) {
+                        base.splice(i - 1, 2);
+                        i--;
+                    } else {
+                        base.splice(i, 1);
+                    }
+                    break;
+                default:
+                    i++;
+            }
+        }
+
+        path = protocol + '//' + host + '/' + base.join('/');
+
+        if (path.substr(path.length - 3) !== '.js') {
+            path += '.js';
+        }
+
+        return path;
+    },
+    _pathToName: function (path) {
+        var paths = this._paths,
+            name;
+
+        if (!paths) {
+            this._paths = (paths = {});
+        }
+
+        if (!paths[path]) {
+            name = path.split('/').pop();
+            if (name.indexOf('.') > 0) {
+                name = name.split('.');
+                name.pop();
+                name = name.join('.');
+            }
+            paths[path] = name;
+        }
+
+        return paths[path];
+    },
+    registerPaths: function (paths) {
+        var name, i, length = paths.length, path;
+
+        for (i = 0; i < length; i++) {
+            if (Y.Lang.isArray(paths[i])) {
+                paths[i] = this._resolvePaths(paths[i]);
+            } else if (typeof paths[i] === 'string' && /\.\//.test(paths[i])) {
+                path = this._resolvePath(paths[i]);
+                name = this._pathToName(path);
+                if (!this.moduleInfo[name]) {
+                    this.addModule({
+                        name: name,
+                        fullpath: path,
+                        temp: true
+                    });
+                }
+                paths[i] = name;
+            }
+        }
+
+        return paths;
     },
     /**
     * The default method used to test a module against a pattern

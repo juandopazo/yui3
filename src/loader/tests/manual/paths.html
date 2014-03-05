@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Modules by path</title>
+</head>
+<body>
+<script src="../../../../build/yui/yui.js"></script>
+<script>
+    var Y = YUI({
+        base: 'http://localhost:8080/src/loader/tests/manual/'
+    });
+    Y.require('./foo', function (Y) {
+        console.log(Y);
+    });
+</script>
+</body>
+</html>
