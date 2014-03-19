@@ -12,7 +12,8 @@
                 ],
                 "condition": {
                     "trigger": "json-parse",
-                    "test": "parse-native-test.js"
+                    "test": "parse-native-test.js",
+                    "when": "instead"
                 }
             },
             "json-stringify-shim": {
@@ -21,7 +22,8 @@
                 ],
                 "condition": {
                     "trigger": "json-stringify",
-                    "test": "stringify-native-test.js"
+                    "test": "stringify-native-test.js",
+                    "when": "instead"
                 }
             }
         },
