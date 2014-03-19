@@ -104,7 +104,7 @@ function _indent(s,space) {
     return s.replace(/^/gm, space);
 }
 
-Y.JSON.stringify = function _stringify(o,w,space) {
+Y.namespace('JSON').stringify = function _stringify(o,w,space) {
     if (o === undefined) {
         return undefined;
     }
