@@ -122,8 +122,60 @@ See the `Y.Template#render` method to see how a registered template is used.
 @static
 @since 3.12.0
 **/
-Template.register = function (templateName, template) {
-    Template._registry[templateName] = template;
+/**
+@method registerAsync
+@param {String} templateName The template name.
+@param {Function} template The function that returns the rendered string. The
+    function should take the following parameters. If a pre-compiled template
+    does not accept these parameters, it is up to the developer to normalize it.
+  @param {Object} [template.data] Data object to provide when rendering the
+    template.
+  @param {Function} [template.callback] A callback
+@static
+@since @SINCE@
+**/
+/**
+@method registerPromise
+@param {String} templateName The template name.
+@param {Function} template The function that returns a promise for the rendered
+    string. The function should take the following parameter.
+  @param {Object} [template.data] Data object to provide when rendering the
+    template.
+@static
+@since @SINCE@
+**/
+/**
+@method registerBound
+@param {String} templateName The template name.
+@param {Function} template The function that returns the rendered string. The
+    function should take the following parameters. If a pre-compiled template
+    does not accept these parameters, it is up to the developer to normalize it.
+  @param {Object} [template.data] Data object to provide when rendering the
+    template.
+  @param {Object} [template.options] Options to pass along to the template
+    engine. See template engine docs for options supported by each engine.
+@param {Object} [config] Optional configuration.
+  @param {String} [config.type='sync'] The type of the template. May be one of:
+    * **`sync`**: A function that takes `data` and `options` parameters and
+        returns a string with the result of rendering the template. This is the
+        default template type.
+    * **`async`**: A function that takes a `data` parameter and a callback. The
+        callback follows Node.js' style and takes an optional errors as a first
+        parameter. The second parameter is the result of rendering the template.
+    * **`promise`**: A function that takes a `data` parameter and returns a
+        promise for the result of rendering the template.
+    * **`live`**: A function that takes `data` and `node` parameters. The node
+        is a DOM node that will be updated live with the result of rendering the
+        template.
+@static
+@since @SINCE@
+**/
+Template.register = function (templateName, template, options) {
+    options = options || {};
+    Template._registry[templateName] = {
+        template: template,
+        type: options.type || 'sync'
+    };
     return template;
 };
 
@@ -140,8 +192,96 @@ unregistered template is accessed, this will return `undefined`.
 **/
 
 Template.get = function (templateName) {
-    return Template._registry[templateName];
-}
+    var record = Template._registry[templateName];
+    return record && record.template;
+};
+
+/**
+Returns a function that updates the given node with the content of rendering
+the template with the provided data. THe return function is normalized for
+different kinds of templates.
+
+The suggested use is to bind a template to a certain node, store the returned
+function and call it repeatedly with different data.
+
+```
+var MyView = Y.Base.create('myView', Y.View, [], {
+    initializer: function () {
+        this.template = Template.bindTo('someTemplate', this.get('container'));
+    },
+    render: function () {
+        this.template(this.get('model').toJSON());
+        return this;
+    }
+});
+```
+
+@method bindTo
+@param {String} templateName The template name.
+@param {Node|String} node A reference to the node to bind the template to or a
+                            CSS selector for it.
+@return {Function} A function that takes two parameters:
+  * **`[data]`**: An object with the data for the template.
+  * **`[callback]`**: An optional callback that will be called after the rendering is
+    complete. If an error ocurred, the callback gets an error object as the
+    first parameter.
+@static
+@since @SINCE@
+**/
+Template.bindTo = function (templateNamek, node) {
+    var record = Template._registry[templateName],
+        template = record && record.template;
+
+    node = Y.one(node);
+
+    if (template) {
+        switch (record.type) {
+            case 'async':
+                return function (data, callback) {
+                    template(data, function (err, output) {
+                        if (err) {
+                            callback(err);
+                            return;
+                        }
+
+                        node.setHTML(output);
+                        callback();
+                    });
+                };
+            case 'promise':
+                return function (data, callback) {
+                    template(data).then(function (output) {
+                        node.setHTML(output);
+                        Y.soon(callback);
+                    }, function (err) {
+                        Y.soon(function () {
+                            callback(err);
+                        });
+                    });
+                };
+            case 'live':
+                return function (data, callback) {
+                    template(data, node.getDOMNode(), callback);
+                };
+            default:
+                return function (data, callback) {
+                    var output;
+
+                    try {
+                        output = template(data);
+                    } catch (err) {
+                        callback(err);
+                        return;
+                    }
+
+                    node.setHTML(output);
+                    callback();
+                };
+        }
+    } else {
+        Y.error('Unregistered template: "' + templateName + '"');
+    }
+};
 
 /**
 Renders a template into a string, given the registered template name and data
@@ -172,17 +312,60 @@ engine generated it.
 @static
 @since 3.12.0
 **/
-Template.render = function (templateName, data, options) {
-    var template = Template._registry[templateName],
-        result   = '';
+Template.render = function (templateName, data, options, callback) {
+    var record = Template._registry[templateName],
+        template = record && record.template;
 
     if (template) {
-        result = template(data, options);
+        switch (record.type) {
+            case 'async':
+                template(data, callback);
+                break;
+            case 'promise':
+                template(data).then(function (result) {
+                    Y.soon(function () {
+                        callback(null, result);
+                    });
+                }, function (err) {
+                    Y.soon(function () {
+                        callback(err);
+                    });
+                });
+                break;
+            case 'live':
+                Y.error('For live templates use renderTo()');
+                break;
+            default:
+                return template(data, options);
+        }
     } else {
         Y.error('Unregistered template: "' + templateName + '"');
     }
+    return '';
+};
 
-    return result;
+/**
+Renders a template into a node, given the registered template name and data
+to be interpolated. The template name must have been registered previously with
+`register()`.
+
+This function also normalizes behavior across different types of templates so
+it will always notify the completion of the rendering asynchronosly, even when
+rendering synchronous templates.
+
+@method renderTo
+@param {String} templateName The abstracted name to reference the template.
+@param {Node|String} node The DOM node into which to render the template or a
+                            CSS selector pointing to the node.
+@param {Object} [data] The data to be interpolated into the template.
+@param {Function} [callback] A callback to call once the template is rendered
+                            or if an error ocurred. If there was an exception
+                            the first parameter will be an error.
+@static
+@since @SINCE@
+**/
+Template.renderTo = function (templateName, node, data, callback) {
+    Template.bindTo(templateName, node)(data, callback);
 };
 
 Template.prototype = {
